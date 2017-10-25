@@ -1,0 +1,35 @@
+---
+# 
+# Input vars: 
+# target_host=172.17.50.144
+# repo_url=https://gerrit.mcp.mirantis.net/salt-formulas/neutron
+# refspec=refs/changes/43/10443/16
+#
+- hosts: "{{ target_host }}"
+  vars:
+    work_dir: "/tmp/{{ formula_name }}_tmp_dir"
+    formula_name: "{{ repo_url | basename }}"
+  remote_user: ubuntu
+  become: yes
+  tasks:
+    - name: Clean {{ work_dir }} work dir 
+      file:
+        state: absent
+        path: "{{ work_dir }}"
+    - name: Get {{ repo_url }} {{ refspec }} from Git
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ work_dir }}"
+        refspec: "{{ refspec }}"
+        version: "FETCH_HEAD"
+        force: yes
+    - name: Backup {{ formula_name }} formula
+      shell: "mv /srv/salt/env/prd/{{ formula_name }} /srv/salt/env/prd/{{ formula_name }}_backup_`date '+%Y%m%d_%H%M%S'`"
+    - name: Copy {{ formula_name }} formula
+      command: "cp -r {{ work_dir }}/{{ formula_name }} /srv/salt/env/prd/{{ formula_name }}"
+    - name: Backup {{ formula_name }} reclass
+      shell: "mv /srv/salt/reclass/classes/service/{{ formula_name }} /srv/salt/reclass/classes/service/{{ formula_name }}_backup_`date '+%Y%m%d_%H%M%S'`"
+    - name: Copy {{ formula_name }} reclass
+      command: "cp -r {{ work_dir }}/metadata/service /srv/salt/reclass/classes/service/{{ formula_name }}"
+
+
